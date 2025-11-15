@@ -143,6 +143,9 @@ function startGame() {
     document.getElementById('startBtn').disabled = true;
     document.getElementById('pauseBtn').disabled = false;
 
+    // Focar canvas para capturar teclas
+    focusCanvas();
+
     gameState.gameLoop = setInterval(() => {
         if (!gameState.isPaused && !gameState.isGameOver) {
             update();
@@ -217,57 +220,115 @@ function update() {
 }
 
 function draw() {
-    // Limpar canvas
-    ctx.fillStyle = '#1a1a2e';
+    // Fundo estilo slither.io - gradiente suave verde/azul
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, '#87CEEB');
+    gradient.addColorStop(0.5, '#98D8C8');
+    gradient.addColorStop(1, '#A8E6CF');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Desenhar grade
-    ctx.strokeStyle = '#16213e';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= tileCount; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * gridSize, 0);
-        ctx.lineTo(i * gridSize, canvas.height);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0, i * gridSize);
-        ctx.lineTo(canvas.width, i * gridSize);
-        ctx.stroke();
-    }
+    // Desenhar comida - estilo slither.io (círculo com brilho)
+    const foodX = gameState.food.x * gridSize + gridSize / 2;
+    const foodY = gameState.food.y * gridSize + gridSize / 2;
+    const foodRadius = gridSize / 2 - 2;
+    
+    // Brilho externo
+    const foodGradient = ctx.createRadialGradient(foodX, foodY, 0, foodX, foodY, foodRadius * 1.5);
+    foodGradient.addColorStop(0, 'rgba(255, 100, 100, 0.6)');
+    foodGradient.addColorStop(1, 'rgba(255, 100, 100, 0)');
+    ctx.fillStyle = foodGradient;
+    ctx.beginPath();
+    ctx.arc(foodX, foodY, foodRadius * 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Comida principal
+    const foodMainGradient = ctx.createRadialGradient(foodX - 3, foodY - 3, 0, foodX, foodY, foodRadius);
+    foodMainGradient.addColorStop(0, '#FF6B6B');
+    foodMainGradient.addColorStop(0.7, '#FF5252');
+    foodMainGradient.addColorStop(1, '#E53935');
+    ctx.fillStyle = foodMainGradient;
+    ctx.beginPath();
+    ctx.arc(foodX, foodY, foodRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Brilho na comida
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.beginPath();
+    ctx.arc(foodX - 2, foodY - 2, foodRadius / 3, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Desenhar comida
-    ctx.fillStyle = '#e74c3c';
-    ctx.fillRect(
-        gameState.food.x * gridSize + 2,
-        gameState.food.y * gridSize + 2,
-        gridSize - 4,
-        gridSize - 4
-    );
-
-    // Desenhar cobra
+    // Desenhar cobra - estilo slither.io com gradiente suave
     gameState.snake.forEach((segment, index) => {
-        if (index === 0) {
-            // Cabeça
-            ctx.fillStyle = '#2ecc71';
-        } else {
-            // Corpo
-            ctx.fillStyle = '#27ae60';
-        }
-        ctx.fillRect(
-            segment.x * gridSize + 2,
-            segment.y * gridSize + 2,
-            gridSize - 4,
-            gridSize - 4
+        const segmentX = segment.x * gridSize + gridSize / 2;
+        const segmentY = segment.y * gridSize + gridSize / 2;
+        const radius = gridSize / 2 - 1;
+        
+        // Gradiente para cada segmento
+        const snakeGradient = ctx.createRadialGradient(
+            segmentX - radius / 3, 
+            segmentY - radius / 3, 
+            0,
+            segmentX, 
+            segmentY, 
+            radius
         );
+        
+        if (index === 0) {
+            // Cabeça - mais brilhante e maior
+            const headRadius = radius + 1;
+            snakeGradient.addColorStop(0, '#4ECDC4');
+            snakeGradient.addColorStop(0.5, '#44A08D');
+            snakeGradient.addColorStop(1, '#2E7D5A');
+            
+            // Sombra da cabeça
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.beginPath();
+            ctx.arc(segmentX + 2, segmentY + 2, headRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Cabeça principal
+            ctx.fillStyle = snakeGradient;
+            ctx.beginPath();
+            ctx.arc(segmentX, segmentY, headRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Brilho na cabeça
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.beginPath();
+            ctx.arc(segmentX - 2, segmentY - 2, headRadius / 3, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            // Corpo - gradiente mais escuro
+            const bodyAlpha = Math.max(0.6, 1 - (index / gameState.snake.length) * 0.3);
+            snakeGradient.addColorStop(0, `rgba(78, 205, 196, ${bodyAlpha})`);
+            snakeGradient.addColorStop(0.5, `rgba(68, 160, 141, ${bodyAlpha})`);
+            snakeGradient.addColorStop(1, `rgba(46, 125, 90, ${bodyAlpha})`);
+            
+            // Sombra do corpo
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.beginPath();
+            ctx.arc(segmentX + 1, segmentY + 1, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Corpo principal
+            ctx.fillStyle = snakeGradient;
+            ctx.beginPath();
+            ctx.arc(segmentX, segmentY, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
     });
 
     // Mostrar mensagem de pausa
     if (gameState.isPaused) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'white';
-        ctx.font = '48px Arial';
+        ctx.font = 'bold 48px Arial';
         ctx.textAlign = 'center';
+        ctx.strokeStyle = '#2c3e50';
+        ctx.lineWidth = 3;
+        ctx.strokeText('PAUSADO', canvas.width / 2, canvas.height / 2);
         ctx.fillText('PAUSADO', canvas.width / 2, canvas.height / 2);
     }
 }
@@ -302,22 +363,46 @@ async function gameOver() {
         }
     }
 
-    // Mostrar game over
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    // Mostrar game over - estilo melhorado
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Texto com sombra
     ctx.fillStyle = 'white';
-    ctx.font = '48px Arial';
+    ctx.font = 'bold 52px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 30);
-    ctx.font = '24px Arial';
+    ctx.strokeStyle = '#2E7D5A';
+    ctx.lineWidth = 4;
+    ctx.strokeText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40);
+    ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40);
+    
+    ctx.font = 'bold 28px Arial';
+    ctx.strokeText(`Pontuação: ${gameState.score}`, canvas.width / 2, canvas.height / 2 + 20);
     ctx.fillText(`Pontuação: ${gameState.score}`, canvas.width / 2, canvas.height / 2 + 20);
 }
 
 // Controles do teclado
 document.addEventListener('keydown', (e) => {
-    if (gameState.isPaused || gameState.isGameOver) return;
+    const key = e.key;
+    
+    // Prevenir scroll quando usar setas ou espaço
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Space'].includes(key)) {
+        e.preventDefault();
+    }
 
-    switch(e.key) {
+    // Pausar/continuar com espaço
+    if (key === ' ' || key === 'Space') {
+        if (gameState.gameLoop && !gameState.isGameOver) {
+            pauseGame();
+        }
+        return;
+    }
+
+    if (gameState.isPaused || gameState.isGameOver) {
+        return;
+    }
+
+    switch(key) {
         case 'ArrowUp':
             if (gameState.direction.y === 0) {
                 gameState.direction = { x: 0, y: -1 };
@@ -352,6 +437,16 @@ function showMessage(text, type) {
     }, 3000);
 }
 
+// Focar no canvas quando o jogo iniciar para capturar teclas
+function focusCanvas() {
+    canvas.focus();
+    canvas.setAttribute('tabindex', '0');
+}
+
 // Inicializar
 draw();
+focusCanvas();
+
+// Focar canvas quando clicar nele
+canvas.addEventListener('click', focusCanvas);
 
